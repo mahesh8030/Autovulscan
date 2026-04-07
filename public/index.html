@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AutoVulnScan — Security Testing Platform</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  body{font-family:'Rajdhani',sans-serif;background:#080c18;color:#e0e0e0}
+  .mono{font-family:'Share Tech Mono',monospace}
+  .grid-bg{background-image:linear-gradient(rgba(0,212,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(0,212,255,.04) 1px,transparent 1px);background-size:40px 40px;animation:gridMove 20s linear infinite}
+  @keyframes gridMove{from{background-position:0 0}to{background-position:40px 40px}}
+  .card{background:rgba(13,27,42,.95);border:1px solid rgba(0,212,255,.2)}
+  .input-f{background:#080c18;border:1px solid #1e3050;color:#e0e0e0;transition:border-color .2s,box-shadow .2s}
+  .input-f:focus{outline:none;border-color:#00d4ff;box-shadow:0 0 0 2px rgba(0,212,255,.15)}
+  .btn-primary{background:linear-gradient(135deg,#0077b6,#00b4d8);transition:all .3s}
+  .btn-primary:hover{background:linear-gradient(135deg,#0096c7,#00d4ff);box-shadow:0 0 20px rgba(0,212,255,.4);transform:translateY(-1px)}
+  .page{display:none}.page.active{display:block}
+  .badge-critical{background:#ff1744;color:#fff}
+  .badge-high{background:#ff6d00;color:#fff}
+  .badge-medium{background:#ffd600;color:#000}
+  .badge-low{background:#00bcd4;color:#000}
+  .badge-info{background:#607d8b;color:#fff}
+  ::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:#080c18}
+  ::-webkit-scrollbar-thumb{background:#00d4ff44;border-radius:3px}
+  .finding-detail{display:none}
+  .scan-line{position:fixed;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#00d4ff,transparent);animation:scan 4s linear infinite;opacity:.15;pointer-events:none}
+  @keyframes scan{from{top:0}to{top:100vh}}
+  .nav-link{cursor:pointer;transition:color .2s}.nav-link:hover{color:#00d4ff}
+  .progress-bar{transition:width .5s ease}
+</style>
+</head>
+<body class="min-h-screen">
+<div class="scan-line"></div>
+
+<!-- ═══════════════════════ LOGIN PAGE ═══════════════════════ -->
+<div id="page-login" class="page active min-h-screen flex items-center justify-center grid-bg px-4">
+  <div class="w-full max-w-md">
+    <div class="mb-5 bg-red-950 border border-red-800 rounded-xl px-4 py-3 text-center">
+      <p class="text-red-400 font-bold">⚠ FOR EDUCATIONAL AND AUTHORISED USE ONLY</p>
+      <p class="text-red-600 text-xs mt-1">Scanning targets without permission is illegal.</p>
+    </div>
+    <div class="card rounded-2xl p-8 shadow-2xl">
+      <div class="text-center mb-8">
+        <div class="text-5xl mb-3">🛡️</div>
+        <h1 class="text-3xl font-bold text-cyan-400 mono">AutoVulnScan</h1>
+        <p class="text-gray-500 text-sm mt-1">Authorised Security Assessment Platform</p>
+      </div>
+      <!-- Tabs -->
+      <div class="flex mb-6 border-b border-gray-700">
+        <button onclick="showAuthTab('login')" id="tab-login" class="flex-1 py-2 text-sm font-bold text-cyan-400 border-b-2 border-cyan-400">Login</button>
+        <button onclick="showAuthTab('register')" id="tab-register" class="flex-1 py-2 text-sm font-bold text-gray-500">Register</button>
+      </div>
+      <div id="auth-error" class="hidden mb-4 px-4 py-3 rounded bg-red-900 border border-red-700 text-red-200 text-sm"></div>
+
+      <!-- Login Form -->
+      <div id="form-login">
+        <div class="mb-4">
+          <label class="block text-gray-400 text-xs font-bold mb-2 uppercase tracking-wider">Username</label>
+          <input id="login-username" type="text" placeholder="Enter username" class="input-f w-full px-4 py-3 rounded-lg text-sm mono">
+        </div>
+        <div class="mb-6">
+          <label class="block text-gray-400 text-xs font-bold mb-2 uppercase tracking-wider">Password</label>
+          <input id="login-password" type="password" placeholder="Enter password" class="input-f w-full px-4 py-3 rounded-lg text-sm mono" onkeydown="if(event.key==='Enter')doLogin()">
+        </div>
+        <button onclick="doLogin()" class="btn-primary w-full py-3 rounded-lg text-white font-bold tracking-wider">🔐 LOGIN</button>
+      </div>
+
+      <!-- Register Form -->
+      <div id="form-register" class="hidden">
+        <div class="mb-4">
+          <label class="block text-gray-400 text-xs font-bold mb-2 uppercase tracking-wider">Username</label>
+          <input id="reg-username" type="text" placeholder="Choose a username" class="input-f w-full px-4 py-3 rounded-lg text-sm mono">
+        </div>
+        <div class="mb-4">
+          <label class="block text-gray-400 text-xs font-bold mb-2 uppercase tracking-wider">Email</label>
+          <input id="reg-email" type="email" placeholder="your@email.com" class="input-f w-full px-4 py-3 rounded-lg text-sm mono">
+        </div>
+        <div class="mb-6">
+          <label class="block text-gray-400 text-xs font-bold mb-2 uppercase tracking-wider">Password</label>
+          <input id="reg-password" type="password" placeholder="Min 6 characters" class="input-f w-full px-4 py-3 rounded-lg text-sm mono">
+        </div>
+        <button onclick="doRegister()" class="btn-primary w-full py-3 rounded-lg text-white font-bold tracking-wider">🔑 CREATE ACCOUNT</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════ APP SHELL (after login) ═══════════════════════ -->
+<div id="page-app" class="page">
+  <!-- Navbar -->
+  <nav class="border-b border-gray-800 bg-gray-950 px-6 py-3 flex items-center justify-between sticky top-0 z-50">
+    <div class="flex items-center gap-3">
+      <span class="text-2xl">🔐</span>
+      <span class="text-xl font-bold text-cyan-400 mono">AutoVulnScan</span>
+    </div>
+    <div class="flex items-center gap-5 text-sm font-semibold">
+      <span class="nav-link text-gray-300" onclick="showSection('dashboard')">Dashboard</span>
+      <span class="nav-link text-gray-300" onclick="showSection('new-scan')">New Scan</span>
+      <span class="nav-link text-gray-300" onclick="showSection('scans')">History</span>
+      <span class="text-gray-600">|</span>
+      <span id="nav-username" class="text-gray-400 text-xs"></span>
+      <button onclick="doLogout()" class="bg-red-900 hover:bg-red-800 text-red-200 px-3 py-1 rounded text-xs transition">Logout</button>
+    </div>
+  </nav>
+
+  <div class="p-6 max-w-5xl mx-auto">
+
+    <!-- ── DASHBOARD ── -->
+    <section id="section-dashboard" class="section">
+      <h1 class="text-2xl font-bold text-cyan-400 mono mb-6">⚡ Dashboard</h1>
+      <div id="dash-stats" class="grid grid-cols-2 md:grid-cols-5 gap-3 mb-6"></div>
+      <div id="dash-recent"></div>
+    </section>
+
+    <!-- ── NEW SCAN ── -->
+    <section id="section-new-scan" class="section hidden">
+      <h1 class="text-2xl font-bold text-cyan-400 mono mb-6">🎯 New Security Scan</h1>
+      <div class="bg-yellow-950 border border-yellow-800 rounded-xl px-4 py-3 mb-6 text-sm">
+        <span class="text-yellow-400 font-bold">⚠ Legal:</span>
+        <span class="text-yellow-600"> Only scan websites you own or have explicit written permission to test.</span>
+      </div>
+      <div class="card rounded-2xl p-6 mb-6">
+        <div class="mb-4">
+          <label class="block text-gray-400 text-xs font-bold mb-2 uppercase tracking-wider">Target URL</label>
+          <input id="scan-url" type="text" placeholder="https://example.com" class="input-f w-full px-4 py-3 rounded-lg mono text-sm">
+          <p id="scan-url-error" class="text-red-400 text-xs mt-2 hidden"></p>
+        </div>
+        <div class="mb-6">
+          <label class="block text-gray-400 text-xs font-bold mb-2 uppercase tracking-wider">Scan Type</label>
+          <select id="scan-type" class="input-f w-full px-4 py-3 rounded-lg text-sm">
+            <option value="quick">Quick Scan (~1 min)</option>
+            <option value="full" selected>Full Scan (~3 min)</option>
+            <option value="deep">Deep Scan (~5 min)</option>
+          </select>
+        </div>
+        <button onclick="startScan()" class="btn-primary px-8 py-3 rounded-lg text-white font-bold tracking-wider">🔍 Start Scan</button>
+      </div>
+
+      <!-- Progress -->
+      <div id="scan-progress-panel" class="card rounded-2xl p-6 hidden">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="font-bold text-cyan-300">🔄 Scan In Progress</h3>
+          <span id="scan-pct" class="mono text-cyan-400 text-sm">0%</span>
+        </div>
+        <div class="w-full bg-gray-800 rounded-full h-3 mb-3 overflow-hidden">
+          <div id="scan-bar" class="progress-bar h-3 rounded-full" style="width:0%;background:linear-gradient(90deg,#0077b6,#00d4ff)"></div>
+        </div>
+        <p id="scan-phase" class="text-gray-400 text-sm">Initializing...</p>
+        <p id="scan-findings-live" class="text-orange-400 text-xs mt-1"></p>
+      </div>
+    </section>
+
+    <!-- ── SCANS HISTORY ── -->
+    <section id="section-scans" class="section hidden">
+      <div class="flex items-center justify-between mb-6">
+        <h1 class="text-2xl font-bold text-cyan-400 mono">🕒 Scan History</h1>
+        <button onclick="showSection('new-scan')" class="btn-primary px-4 py-2 rounded-lg text-white text-sm font-bold">+ New Scan</button>
+      </div>
+      <div id="scans-list"></div>
+    </section>
+
+    <!-- ── SCAN DETAIL ── -->
+    <section id="section-scan-detail" class="section hidden">
+      <div class="flex items-center justify-between mb-6">
+        <div>
+          <h1 class="text-2xl font-bold text-cyan-400 mono">🔍 Scan Results</h1>
+          <p id="detail-target" class="text-gray-500 text-sm mono mt-1"></p>
+        </div>
+        <div class="flex gap-3">
+          <button id="detail-report-btn" onclick="downloadReport()" class="bg-green-800 hover:bg-green-700 text-green-200 px-4 py-2 rounded-lg text-sm font-bold transition">📥 Report</button>
+          <button onclick="showSection('new-scan')" class="bg-gray-800 hover:bg-gray-700 text-gray-300 px-4 py-2 rounded-lg text-sm font-bold transition">🔄 New Scan</button>
+        </div>
+      </div>
+      <div id="detail-summary" class="grid grid-cols-5 gap-3 mb-6"></div>
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div class="card rounded-xl p-4"><h3 class="text-sm font-bold text-gray-300 mb-3">Severity Distribution</h3><canvas id="sev-chart" height="160"></canvas></div>
+        <div class="card rounded-xl p-4" id="owasp-panel"><h3 class="text-sm font-bold text-gray-300 mb-3">OWASP Categories Found</h3><div id="owasp-cats"></div></div>
+      </div>
+      <div class="card rounded-2xl p-6">
+        <h2 class="text-lg font-bold text-gray-200 mb-4">📋 Findings</h2>
+        <div id="detail-findings"></div>
+      </div>
+    </section>
+
+  </div><!-- /max-w -->
+</div><!-- /page-app -->
+
+<script>
+// ── State ────────────────────────────────────────────────────────────────────
+let currentUser = null;
+let currentScanId = null;
+let pollTimer = null;
+let sevChart = null;
+
+// ── API helper ───────────────────────────────────────────────────────────────
+async function api(method, path, body) {
+  const opts = { method, credentials: 'include', headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch('/api' + path, opts);
+  const data = await r.json().catch(() => ({}));
+  return { ok: r.ok, status: r.status, data };
+}
+
+// ── Auth ─────────────────────────────────────────────────────────────────────
+function showAuthTab(tab) {
+  document.getElementById('form-login').classList.toggle('hidden', tab !== 'login');
+  document.getElementById('form-register').classList.toggle('hidden', tab !== 'register');
+  document.getElementById('tab-login').className = 'flex-1 py-2 text-sm font-bold ' + (tab === 'login' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-500');
+  document.getElementById('tab-register').className = 'flex-1 py-2 text-sm font-bold ' + (tab === 'register' ? 'text-cyan-400 border-b-2 border-cyan-400' : 'text-gray-500');
+  document.getElementById('auth-error').classList.add('hidden');
+}
+
+function showAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  el.textContent = msg;
+  el.classList.remove('hidden');
+}
+
+async function doLogin() {
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value;
+  if (!username || !password) return showAuthError('Please enter username and password.');
+  const { ok, data } = await api('POST', '/auth/login', { username, password });
+  if (!ok) return showAuthError(data.error || 'Login failed.');
+  currentUser = data;
+  enterApp();
+}
+
+async function doRegister() {
+  const username = document.getElementById('reg-username').value.trim();
+  const email    = document.getElementById('reg-email').value.trim();
+  const password = document.getElementById('reg-password').value;
+  if (!username || !email || !password) return showAuthError('All fields are required.');
+  const { ok, data } = await api('POST', '/auth/register', { username, email, password });
+  if (!ok) return showAuthError(data.error || 'Registration failed.');
+  currentUser = data;
+  enterApp();
+}
+
+async function doLogout() {
+  await api('POST', '/auth/logout');
+  currentUser = null;
+  document.getElementById('page-login').classList.add('active');
+  document.getElementById('page-app').classList.remove('active');
+  document.getElementById('page-login').style.display = '';
+  document.getElementById('page-app').style.display = '';
+}
+
+function enterApp() {
+  document.getElementById('page-login').classList.remove('active');
+  document.getElementById('page-app').classList.add('active');
+  document.getElementById('nav-username').textContent = '👤 ' + currentUser.username;
+  showSection('dashboard');
+  loadDashboard();
+}
+
+// ── Navigation ───────────────────────────────────────────────────────────────
+function showSection(name) {
+  document.querySelectorAll('.section').forEach(s => s.classList.add('hidden'));
+  document.getElementById('section-' + name).classList.remove('hidden');
+  if (name === 'scans') loadScans();
+  if (name === 'dashboard') loadDashboard();
+}
+
+// ── Dashboard ────────────────────────────────────────────────────────────────
+async function loadDashboard() {
+  const { ok, data } = await api('GET', '/dashboard');
+  if (!ok) return;
+  const stats = [
+    { label: 'Total Scans',    val: data.totalScans,    color: 'text-cyan-400' },
+    { label: 'Critical',       val: data.criticalCount, color: 'text-red-400' },
+    { label: 'High',           val: data.highCount,     color: 'text-orange-400' },
+    { label: 'Medium',         val: data.mediumCount,   color: 'text-yellow-400' },
+    { label: 'Low',            val: data.lowCount,      color: 'text-blue-400' },
+  ];
+  document.getElementById('dash-stats').innerHTML = stats.map(s =>
+    `<div class="card rounded-xl p-4 text-center"><div class="text-2xl font-bold ${s.color}">${s.val}</div><div class="text-gray-500 text-xs mt-1">${s.label}</div></div>`
+  ).join('');
+
+  const recent = data.recentScans || [];
+  document.getElementById('dash-recent').innerHTML = recent.length ? `
+    <div class="card rounded-2xl p-6">
+      <h2 class="text-lg font-bold text-gray-200 mb-4">🕒 Recent Scans</h2>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead><tr class="border-b border-gray-700 text-gray-400 text-left text-xs uppercase">
+            <th class="pb-3 pr-4">Target</th><th class="pb-3 pr-4">Findings</th><th class="pb-3 pr-4">Status</th><th class="pb-3">Action</th>
+          </tr></thead>
+          <tbody>${recent.map(sc => `
+            <tr class="border-b border-gray-800 hover:bg-gray-800 transition">
+              <td class="py-3 pr-4 mono text-cyan-300 text-xs">${sc.target.length > 45 ? sc.target.slice(0,45)+'...' : sc.target}</td>
+              <td class="py-3 pr-4 text-orange-400 font-bold">${sc.findingsCount}</td>
+              <td class="py-3 pr-4"><span class="px-2 py-1 rounded text-xs font-bold ${statusClass(sc.status)}">${sc.status}</span></td>
+              <td class="py-3"><span class="text-cyan-400 cursor-pointer hover:text-cyan-300 text-xs" onclick="openScan(${sc.id})">View →</span></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>` : '<div class="card rounded-2xl p-10 text-center"><p class="text-gray-500">No scans yet. <span class="text-cyan-400 cursor-pointer" onclick="showSection(\'new-scan\')">Start your first scan →</span></p></div>';
+}
+
+// ── New Scan ─────────────────────────────────────────────────────────────────
+async function startScan() {
+  const url      = document.getElementById('scan-url').value.trim();
+  const scanType = document.getElementById('scan-type').value;
+  const errEl    = document.getElementById('scan-url-error');
+  errEl.classList.add('hidden');
+
+  let target = url;
+  if (!target) { errEl.textContent = 'Please enter a URL.'; errEl.classList.remove('hidden'); return; }
+  if (!target.startsWith('http')) target = 'https://' + target;
+
+  const privatePatterns = ['localhost','127.0.0.1','192.168.','10.','0.0.0.0'];
+  if (privatePatterns.some(p => target.includes(p))) {
+    errEl.textContent = 'Private/internal addresses are not allowed.';
+    errEl.classList.remove('hidden'); return;
+  }
+
+  const panel = document.getElementById('scan-progress-panel');
+  panel.classList.remove('hidden');
+  document.getElementById('scan-bar').style.width = '3%';
+  document.getElementById('scan-phase').textContent = 'Starting scan...';
+  document.getElementById('scan-pct').textContent = '0%';
+
+  const { ok, data } = await api('POST', '/scans', { target, scanType });
+  if (!ok) { errEl.textContent = data.error || 'Failed to start scan.'; errEl.classList.remove('hidden'); panel.classList.add('hidden'); return; }
+
+  currentScanId = data.id;
+  if (pollTimer) clearInterval(pollTimer);
+  pollTimer = setInterval(() => pollScan(data.id), 2000);
+}
+
+async function pollScan(id) {
+  const { ok, data } = await api('GET', `/scans/${id}/progress`);
+  if (!ok) return;
+  document.getElementById('scan-bar').style.width = data.progress + '%';
+  document.getElementById('scan-pct').textContent = data.progress + '%';
+  document.getElementById('scan-phase').textContent = data.currentPhase;
+  if (data.findingsCount > 0)
+    document.getElementById('scan-findings-live').textContent = `⚠ ${data.findingsCount} finding(s) found so far`;
+  if (data.status === 'completed') {
+    clearInterval(pollTimer);
+    setTimeout(() => openScan(id), 600);
+  }
+  if (data.status === 'failed') {
+    clearInterval(pollTimer);
+    document.getElementById('scan-phase').textContent = '❌ Scan failed. Please try again.';
+  }
+}
+
+// ── Scans List ───────────────────────────────────────────────────────────────
+async function loadScans() {
+  const { ok, data } = await api('GET', '/scans');
+  if (!ok) return;
+  const el = document.getElementById('scans-list');
+  if (!data.length) { el.innerHTML = '<div class="card rounded-2xl p-10 text-center"><p class="text-gray-500">No scans yet.</p></div>'; return; }
+  el.innerHTML = `<div class="card rounded-2xl overflow-hidden">
+    <table class="w-full text-sm">
+      <thead><tr class="bg-gray-950 text-gray-400 text-xs uppercase text-left">
+        <th class="px-4 py-3">Target</th><th class="px-4 py-3">Date</th><th class="px-4 py-3">Findings</th><th class="px-4 py-3">Status</th><th class="px-4 py-3">Actions</th>
+      </tr></thead>
+      <tbody>${data.map(sc => `
+        <tr class="border-t border-gray-800 hover:bg-gray-800 transition" id="scan-row-${sc.id}">
+          <td class="px-4 py-3 mono text-cyan-300 text-xs">${sc.target.length > 50 ? sc.target.slice(0,50)+'...' : sc.target}</td>
+          <td class="px-4 py-3 text-gray-400 text-xs">${new Date(sc.createdAt).toLocaleDateString()}</td>
+          <td class="px-4 py-3 font-bold ${sc.findingsCount > 0 ? 'text-orange-400' : 'text-green-400'}">${sc.findingsCount}</td>
+          <td class="px-4 py-3"><span class="px-2 py-1 rounded text-xs font-bold ${statusClass(sc.status)}">${sc.status}</span></td>
+          <td class="px-4 py-3 flex gap-3">
+            <span class="text-cyan-400 cursor-pointer hover:text-cyan-300 text-xs" onclick="openScan(${sc.id})">👁 View</span>
+            <span class="text-red-500 cursor-pointer hover:text-red-400 text-xs" onclick="deleteScan(${sc.id})">🗑 Delete</span>
+          </td>
+        </tr>`).join('')}
+      </tbody>
+    </table></div>`;
+}
+
+async function deleteScan(id) {
+  if (!confirm('Delete this scan and all findings?')) return;
+  const { ok } = await api('DELETE', `/scans/${id}`);
+  if (ok) document.getElementById('scan-row-' + id)?.remove();
+}
+
+// ── Scan Detail ──────────────────────────────────────────────────────────────
+async function openScan(id) {
+  currentScanId = id;
+  showSection('scan-detail');
+  const { ok, data } = await api('GET', `/scans/${id}`);
+  if (!ok) return;
+
+  document.getElementById('detail-target').textContent = data.target;
+  const counts = { critical: data.criticalCount, high: data.highCount, medium: data.mediumCount, low: data.lowCount };
+  document.getElementById('detail-summary').innerHTML = [
+    ['Critical', data.criticalCount, 'text-red-400'],
+    ['High',     data.highCount,     'text-orange-400'],
+    ['Medium',   data.mediumCount,   'text-yellow-400'],
+    ['Low',      data.lowCount,      'text-blue-400'],
+    ['Total',    data.findingsCount, 'text-cyan-400'],
+  ].map(([l,v,c]) => `<div class="card rounded-xl p-4 text-center"><div class="text-2xl font-bold ${c}">${v}</div><div class="text-gray-500 text-xs mt-1">${l}</div></div>`).join('');
+
+  // Chart
+  if (sevChart) sevChart.destroy();
+  sevChart = new Chart(document.getElementById('sev-chart').getContext('2d'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Critical','High','Medium','Low'],
+      datasets: [{ data: [data.criticalCount, data.highCount, data.mediumCount, data.lowCount],
+        backgroundColor: ['#ff1744','#ff6d00','#ffd600','#00bcd4'], borderWidth: 0 }]
+    },
+    options: { plugins: { legend: { labels: { color: '#9ca3af', font: { size: 11 } } } }, cutout: '65%' }
+  });
+
+  // OWASP categories
+  const owaspCats = [...new Set((data.findings || []).map(f => f.owaspCategory).filter(Boolean))];
+  document.getElementById('owasp-cats').innerHTML = owaspCats.length
+    ? owaspCats.map(c => `<div class="text-xs bg-orange-950 border border-orange-900 text-orange-300 rounded px-2 py-1 mb-1">${c}</div>`).join('')
+    : '<p class="text-green-400 text-sm">✅ No OWASP categories triggered</p>';
+
+  // Findings
+  const sevOrder = { critical:0, high:1, medium:2, low:3, info:4 };
+  const sorted = (data.findings || []).sort((a,b) => (sevOrder[a.severity]??5) - (sevOrder[b.severity]??5));
+  document.getElementById('detail-findings').innerHTML = sorted.length
+    ? sorted.map(f => `
+      <div class="border border-gray-700 rounded-xl mb-3 overflow-hidden">
+        <div class="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-gray-800 transition" onclick="toggleFinding(${f.id})">
+          <span class="px-2 py-0.5 rounded text-xs font-bold badge-${f.severity}">${(f.severity||'info').toUpperCase()}</span>
+          <span class="flex-1 font-semibold text-gray-200 text-sm">${f.title}</span>
+          <span class="text-gray-500 text-xs hidden md:block">${f.owaspCategory || ''}</span>
+          <span class="text-gray-500 text-xs">▼</span>
+        </div>
+        <div id="fd-${f.id}" class="finding-detail px-4 pb-4 bg-gray-950 border-t border-gray-800">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mt-3 text-xs">
+            <div><span class="text-gray-500">OWASP:</span> <span class="text-orange-300">${f.owaspCategory || 'N/A'}</span></div>
+            <div><span class="text-gray-500">URL:</span> <span class="text-cyan-300 mono">${f.url}</span></div>
+            <div class="md:col-span-2"><span class="text-gray-500">Description:</span> <span class="text-gray-300">${f.description}</span></div>
+            ${f.evidence ? `<div class="md:col-span-2"><span class="text-gray-500">Evidence:</span> <code class="text-purple-300 text-xs bg-gray-900 px-2 py-1 rounded">${f.evidence}</code></div>` : ''}
+            ${f.remediation ? `<div class="md:col-span-2 bg-green-950 border border-green-900 rounded p-2"><span class="text-green-400 font-semibold">🛠 Remediation:</span> <span class="text-green-300">${f.remediation}</span></div>` : ''}
+          </div>
+        </div>
+      </div>`) .join('')
+    : '<div class="text-center py-8"><div class="text-4xl mb-2">✅</div><p class="text-green-400 font-bold">No vulnerabilities detected!</p></div>';
+}
+
+function toggleFinding(id) {
+  const el = document.getElementById('fd-' + id);
+  el.style.display = el.style.display === 'block' ? 'none' : 'block';
+}
+
+async function downloadReport() {
+  if (!currentScanId) return;
+  window.open('/api/scans/' + currentScanId + '/report', '_blank');
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+function statusClass(s) {
+  return { completed: 'bg-green-900 text-green-300', failed: 'bg-red-900 text-red-300',
+           running: 'bg-blue-900 text-blue-300' }[s] || 'bg-yellow-900 text-yellow-300';
+}
+
+// ── Init ─────────────────────────────────────────────────────────────────────
+(async () => {
+  const { ok, data } = await api('GET', '/auth/me');
+  if (ok && data.id) { currentUser = data; enterApp(); }
+})();
+</script>
+</body>
+</html>
