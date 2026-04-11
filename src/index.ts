@@ -1,27 +1,33 @@
 import express from "express";
 import cors from "cors";
 import session from "express-session";
-import connectPgSimple from "connect-pg-simple";
 import path from "path";
 import { pool, initDb } from "./db";
 import authRoutes from "./routes/auth";
 import scanRoutes from "./routes/scans";
 
-const PgSession = connectPgSimple(session);
 const app = express();
 const PORT = parseInt(process.env.PORT ?? "3000", 10);
+
+// Trust Render proxy
+app.set("trust proxy", 1);
 
 app.use(cors({ origin: true, credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 app.use(session({
-  store: new PgSession({ pool, tableName: "session", createTableIfMissing: true }),
-  secret: process.env.SESSION_SECRET ?? "autovulnscan-secret-change-me",
-  resave: false,
+  name: "avs.sid",
+  secret: process.env.SESSION_SECRET ?? "autovulnscan-secret-2025",
+  resave: true,
   saveUninitialized: false,
-  cookie: { httpOnly: true, maxAge: 7 * 24 * 60 * 60 * 1000, sameSite: "none",
-            secure: true },
+  rolling: true,
+  cookie: {
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000,
+    sameSite: "none",
+    secure: true,
+  },
 }));
 
 // API routes
@@ -34,7 +40,7 @@ app.get("/api/health", (_req, res) => res.json({ status: "ok", timestamp: new Da
 // Serve frontend static files
 app.use(express.static(path.join(__dirname, "../public")));
 
-// SPA fallback — all non-API routes serve index.html
+// SPA fallback
 app.get("*", (_req, res) => {
   res.sendFile(path.join(__dirname, "../public/index.html"));
 });
