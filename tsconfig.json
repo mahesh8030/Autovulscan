@@ -5,8 +5,12 @@
     "outDir": "./dist",
     "rootDir": "./src",
     "strict": false,
+    "noImplicitAny": false,
+    "skipLibCheck": true,
     "esModuleInterop": true,
-    "skipLibCheck": true
+    "allowSyntheticDefaultImports": true,
+    "resolveJsonModule": true,
+    "forceConsistentCasingInFileNames": false
   },
   "include": ["src/**/*"],
   "exclude": ["node_modules", "dist"]
